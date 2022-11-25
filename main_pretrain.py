@@ -20,11 +20,11 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
+# import torchvision.datasets as datasets
 
 import timm
 
-assert timm.__version__ == "0.3.2"  # version check
+# assert timm.__version__ == "0.3.2"  # version check
 import timm.optim.optim_factory as optim_factory
 
 import util.misc as misc
@@ -33,6 +33,9 @@ from util.misc import NativeScalerWithGradNormCount as NativeScaler
 import models_mae
 
 from engine_pretrain import train_one_epoch
+
+# import datasets
+from data.cifar import CIFAR10
 
 
 def get_args_parser():
@@ -75,9 +78,9 @@ def get_args_parser():
     parser.add_argument('--data_path', default='/datasets01/imagenet_full_size/061417/', type=str,
                         help='dataset path')
 
-    parser.add_argument('--output_dir', default='./output_dir',
+    parser.add_argument('--output_dir', default='./output_dir/pre-cifar10/',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--log_dir', default='./output_dir',
+    parser.add_argument('--log_dir', default='./output_dir/pre-cifar10/',
                         help='path where to tensorboard log')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -92,6 +95,9 @@ def get_args_parser():
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
     parser.set_defaults(pin_mem=True)
+
+    parser.add_argument('--noise_rate', type=float, help='corruption rate, should be less than 1', default=0.4)
+    parser.add_argument('--noise_type', type=str, help='[pairflip, symmetric]', default='symmetric')
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -125,8 +131,15 @@ def main(args):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
-    print(dataset_train)
+
+    # dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
+    # print(dataset_train)
+    # print("Creating dataset: {}".format(args.dataset))
+    dataset_train = CIFAR10(root='./data/cifar10', train=True, download=True, transform=transform_train,
+                            noise_type=args.noise_type,
+                            noise_rate=args.noise_rate,
+                            img_size=args.input_size
+                            )
 
     if True:  # args.distributed:
         num_tasks = misc.get_world_size()
