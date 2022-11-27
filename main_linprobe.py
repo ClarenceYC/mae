@@ -106,6 +106,7 @@ def get_args_parser():
 
     parser.add_argument('--noise_rate', type=float, help='corruption rate, should be less than 1', default=0.001)
     parser.add_argument('--noise_type', type=str, help='[pairflip, symmetric]', default='symmetric')
+    parser.add_argument('--input_size', type=int, default=224)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
