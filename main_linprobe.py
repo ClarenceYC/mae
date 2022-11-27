@@ -38,6 +38,8 @@ import models_vit
 
 from engine_finetune import train_one_epoch, evaluate
 
+from data.cifar import CIFAR10
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE linear probing for image classification', add_help=False)
@@ -48,7 +50,7 @@ def get_args_parser():
                         help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
 
     # Model parameters
-    parser.add_argument('--model', default='vit_large_patch16', type=str, metavar='MODEL',
+    parser.add_argument('--model', default='vit_base_patch16', type=str, metavar='MODEL',
                         help='Name of model to train')
 
     # Optimizer parameters
@@ -77,10 +79,10 @@ def get_args_parser():
     # Dataset parameters
     parser.add_argument('--data_path', default='/datasets01/imagenet_full_size/061417/', type=str,
                         help='dataset path')
-    parser.add_argument('--nb_classes', default=1000, type=int,
+    parser.add_argument('--nb_classes', default=10, type=int,
                         help='number of the classification types')
 
-    parser.add_argument('--output_dir', default='./output_dir',
+    parser.add_argument('--output_dir', default='./output_dir/cifar10/linear',
                         help='path where to save, empty for no saving')
     parser.add_argument('--log_dir', default='./output_dir',
                         help='path where to tensorboard log')
@@ -101,6 +103,9 @@ def get_args_parser():
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
     parser.set_defaults(pin_mem=True)
+
+    parser.add_argument('--noise_rate', type=float, help='corruption rate, should be less than 1', default=0.001)
+    parser.add_argument('--noise_type', type=str, help='[pairflip, symmetric]', default='symmetric')
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -139,8 +144,18 @@ def main(args):
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
-    dataset_val = datasets.ImageFolder(os.path.join(args.data_path, 'val'), transform=transform_val)
+    # dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
+    # dataset_val = datasets.ImageFolder(os.path.join(args.data_path, 'val'), transform=transform_val)
+    dataset_train = CIFAR10(root='./data/cifar10', train=True, download=True, transform=transform_train,
+                            noise_type=args.noise_type,
+                            noise_rate=args.noise_rate,
+                            img_size=args.input_size
+                            )
+    dataset_val = CIFAR10(root='./data/cifar10', train=True, download=False, transform=transform_val,
+                          noise_type=args.noise_type,
+                          noise_rate=args.noise_rate,
+                          img_size=args.input_size
+                          )
     print(dataset_train)
     print(dataset_val)
 
