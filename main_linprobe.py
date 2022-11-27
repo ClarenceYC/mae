@@ -152,7 +152,7 @@ def main(args):
                             noise_rate=args.noise_rate,
                             img_size=args.input_size
                             )
-    dataset_val = CIFAR10(root='./data/cifar10', train=True, download=False, transform=transform_val,
+    dataset_val = CIFAR10(root='./data/cifar10', train=False, download=True, transform=transform_val,
                           noise_type=args.noise_type,
                           noise_rate=args.noise_rate,
                           img_size=args.input_size
